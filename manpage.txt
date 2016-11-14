@@ -1,0 +1,131 @@
+NAME
+    check_tls_cert.pl - Check the expiration date (and optionally the
+    correctness) of a TLS certificate
+
+SYNOPSIS
+    check_tls_cert.pl -f|--certfile filename [-D|--dn distinguished_name]
+    [-C|--cn FQDN] [-S|--sha256|--hpkp base64_string] [-O|--openssl binary]
+    [-w|--warning days] [-c|--critical days]
+
+    check_tls_cert.pl -s|--server servername [-P|--proto protocol]
+    [-p|--port portnumber] [-n|--servername fqdn] [-D|--dn distinguished_name]
+    [-C|--cn common_name] [-S|--sha256|--hpkp base64_string] [-O|--openssl
+    binary] [-w|--warning days] [-c|--critical days]
+
+    check_tls_cert.pl -h|--help
+
+DESCRIPTION
+    This script will fetch a TLS (SSL) certificate remotely or read a file
+    containing the certificate and determine when the certificate will expire.
+    The script will output a single line of text with the status and terminate
+    with exit code 0, 1 or 2 depending on the status. The script is to be used
+    in a Nagios or compatible monitoring system.
+
+    The script can also check the correctness of the certificate, based either
+    on the fully qualified domain name (i.e., the "/CN" part of the subject),
+    the distinguished name (i.e., the full subject line) or the HPKP pin of
+    the certificate (i.e., a base64 representation of the SHA256 hash of the
+    public key part in DER format).
+
+    When retrieving the certificate remotely, it is also possible to retrieve
+    the certificate from servers that use the STARTTLS protocol and from web
+    servers that use Server Name Indication (SNI) to share the same IP address
+    and port with other web servers.
+
+REQUIREMENTS
+    The script requires the perl modules IPC::Run, Getopt::Long, Pod::Usage
+    and Time::ParseDate and the openssl binary. The script assumes to run on a
+    unix-like operating system.
+
+OPTIONS
+    -f, --certfile filename
+        Read the certificate from a local file. If this option is used, the
+        options --server, --proto, --port and --servername are ignored. Either
+        this option or --server is mandatory.
+
+    -s, --server servername
+        Connect remotely to the server indicated by servername. Either a host
+        name or IP address will work. Either this option or --certfile above
+        is mandatory.
+
+    -p, --port portnumber
+        Optionally specify the port number on which to connect to the server.
+        If neither this option nor the option --proto below is specified, port
+        443 (the standard HTTPS port) is used.
+
+    -P, --proto protocol
+        Optionally specify the protocol that the server expects. This
+        determines the port number and if the STARTTLS communication should be
+        used. If the --port option is used, it overrides the implied port
+        here. The available protocols are https (default, connect to port
+        443), imaps (connect to port 993), ftps (connect to port 990),
+        ldaps (connect to port 663), stls_smtp (connect to port 25 using
+        STARTTLS in SMTP), stls_pop3 (connect to port 110 using STARTTLS in
+        POP3), stls_imap (connect to port 143 using STARTTLS in IMAP),
+        stls_ftp (connect to port 21 using STARTTLS in FTP) and tls (TLS
+        connection to a mandatory specified port).
+
+    -n, --servername fqdn
+        When connecting to a https server, this option can be used to specify
+        one of multiple webservers that listens to the same connection (using
+        SNI, Server Name Indication). This option is ignored with all other
+        protocols. To be able to use this, openssl version 1.0.1 or higher is
+        required. Older versions will yield an error.
+
+    -D, --dn distinguished_name
+        Optionally check the validity of the Subject: line of the cerificate.
+        The complete distinguished name should be provided (e.g.:
+        "/C=US/ST=Washington/L=Redmond/O=Microsoft
+        Corporation/CN=www.microsoft.com"). The check is case insensitive and
+        a failure yields a critical status.
+
+    -C, --cn FQDN
+        Check the validity of the common name in the subject line (in the
+        example of the previous item: "www.microsoft.com"). Only provide the
+        fully qualified domain name, not the "/CN=" part. If the --dn option
+        above is also provided, this option is ignored since the common name
+        is part of the subject name. A failure of this yields a critical
+        status.
+
+    -S, --sha256, --hpkp base64_string
+        Optionally check the HPKP pin of the certificate. This is a base64
+        encoding of the sha256 hash, of a DER output of the certificate's
+        public key. This is the same string that is used in HTTP Public Key
+        Pinning (HPKP). An incorrect string yields a critical status. The
+        base64 string can be calculated as follows:
+
+            openssl x509 -in certificate_file -noout -pubkey | \
+            openssl rsa -pubin -outform der | \
+            openssl dgst -sha256 -binary | \
+            openssl enc -base64
+
+    -O, --openssl binary
+        Specify the location of the openssl binary. This defaults to
+        /usr/bin/openssl.
+
+    -w, --warning days
+        Specify the number of days (or less) until the certificate will expire
+        which you deem worthy of a warning. The default is 30.
+
+    -c, --critical days
+        Specify the number of days (or less) until the certificate will expire
+        which you consider critical. The default is 7. A critical status takes
+        precedence to a warning status.
+
+    -h, --help
+        Print the manpage.
+
+    -o, --options
+        Print a short help, consisting of Usage and Options.
+
+AUTHOR
+    Rob S. Wolfram <propdf@hamal.nl>
+
+LICENSE
+    This program is licensed according to the GNU General Public License (GPL)
+    Version 2 or later. A copy of the license text can be obtained from
+    <http://www.gnu.org/licenses/gpl.html> or by mailing the author. In short
+    it means that there are no restrictions on its use, but distributing the
+    program or derivative works is only allowed according to the terms of the
+    GPL.
+
